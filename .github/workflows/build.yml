@@ -51,7 +51,7 @@ jobs:
             --archive-areas "main contrib non-free non-free-firmware" \
             --debian-installer live \
             --debian-installer-gui true \
-            --bootloaders grub-efi \
+            --bootloader grub-efi \
             --binary-images iso-hybrid \
             --iso-application "FemDeb OS" \
             --iso-publisher "FemDeb Project" \
