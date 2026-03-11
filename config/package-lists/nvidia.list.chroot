@@ -1,0 +1,29 @@
+# =============================================================================
+#  FemDeb OS — NVIDIA Driver Package List
+#  config/package-lists/nvidia.list.chroot
+# =============================================================================
+
+# ── NVIDIA Drivers (non-free) ─────────────────────────────────────────────────
+nvidia-driver
+nvidia-driver-libs
+nvidia-kernel-dkms
+linux-headers-amd64
+
+# ── NVIDIA Utilities ──────────────────────────────────────────────────────────
+nvidia-smi
+nvidia-settings
+nvidia-cuda-toolkit-doc
+
+# ── DKMS (needed to rebuild kernel modules) ───────────────────────────────────
+dkms
+build-essential
+
+# ── VA-API / VDPAU for hardware video acceleration ────────────────────────────
+vdpauinfo
+libvdpau1
+libvdpau-va-gl1
+mesa-va-drivers
+
+# ── Vulkan support ────────────────────────────────────────────────────────────
+vulkan-tools
+libvulkan1
