@@ -24,6 +24,9 @@ jobs:
   build-standard:
     name: Build Standard ISO
     runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+      options: --privileged
     if: >
       github.event_name != 'workflow_dispatch' ||
       github.event.inputs.variant == 'standard' ||
@@ -35,8 +38,8 @@ jobs:
 
       - name: 📦 Install live-build and dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
+          apt-get update -y
+          apt-get install -y \
             live-build debootstrap squashfs-tools xorriso \
             grub-efi-amd64-bin grub-pc-bin mtools dosfstools \
             rsync curl git ca-certificates debian-archive-keyring
@@ -46,12 +49,12 @@ jobs:
 
       - name: 🏗️ Configure live-build (standard)
         run: |
-          sudo lb config \
+          lb config \
             --distribution bookworm \
-            --mirror-bootstrap http://deb.debian.org/debian/ \
-            --mirror-chroot http://deb.debian.org/debian/ \
-            --mirror-binary http://deb.debian.org/debian/ \
-            --mirror-binary-security http://security.debian.org/debian-security/ \
+            --mirror-bootstrap http://deb.debian.org \
+            --mirror-chroot http://deb.debian.org \
+            --mirror-binary http://deb.debian.org \
+            --mirror-binary-security http://security.debian.org \
             --archive-areas "main contrib non-free non-free-firmware" \
             --debian-installer live \
             --debian-installer-gui true \
@@ -65,7 +68,7 @@ jobs:
             --checksums sha256
 
       - name: 🌸 Build ISO (standard)
-        run: sudo lb build
+        run: lb build
         timeout-minutes: 90
 
       - name: 📋 Rename and hash ISO (standard)
@@ -73,9 +76,9 @@ jobs:
           mkdir -p output
           VERSION="${{ github.ref_name }}"
           [[ "$VERSION" == "main" ]] && VERSION="dev-$(date +%Y%m%d)"
-          sudo mv *.iso "output/femdeb-${VERSION}-amd64.iso" 2>/dev/null || \
-          sudo mv *.hybrid.iso "output/femdeb-${VERSION}-amd64.iso" 2>/dev/null || true
-          sha256sum output/*.iso > output/SHA256SUMS
+          mv *.iso "output/femdeb-${VERSION}-amd64.iso" 2>/dev/null || \
+          mv *.hybrid.iso "output/femdeb-${VERSION}-amd64.iso" 2>/dev/null || true
+          sha256sum output/*.iso > output/SHA256SUMS-standard
 
       - name: 📤 Upload standard ISO artifact
         uses: actions/upload-artifact@v4
@@ -88,6 +91,9 @@ jobs:
   build-nvidia:
     name: Build NVIDIA ISO
     runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+      options: --privileged
     if: >
       github.event_name != 'workflow_dispatch' ||
       github.event.inputs.variant == 'nvidia' ||
@@ -99,8 +105,8 @@ jobs:
 
       - name: 📦 Install live-build and dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
+          apt-get update -y
+          apt-get install -y \
             live-build debootstrap squashfs-tools xorriso \
             grub-efi-amd64-bin grub-pc-bin mtools dosfstools \
             rsync curl git ca-certificates debian-archive-keyring
@@ -108,16 +114,16 @@ jobs:
       - name: 🔧 Make scripts executable
         run: |
           chmod +x scripts/*.sh
-          chmod +x config/hooks/normal/0200-femdeb-nvidia.hook.chroot
+          [ -f config/hooks/normal/0200-femdeb-nvidia.hook.chroot ] && chmod +x config/hooks/normal/0200-femdeb-nvidia.hook.chroot
 
       - name: 🏗️ Configure live-build (NVIDIA)
         run: |
-          sudo lb config \
+          lb config \
             --distribution bookworm \
-            --mirror-bootstrap http://deb.debian.org/debian/ \
-            --mirror-chroot http://deb.debian.org/debian/ \
-            --mirror-binary http://deb.debian.org/debian/ \
-            --mirror-binary-security http://security.debian.org/debian-security/ \
+            --mirror-bootstrap http://deb.debian.org \
+            --mirror-chroot http://deb.debian.org \
+            --mirror-binary http://deb.debian.org \
+            --mirror-binary-security http://security.debian.org \
             --archive-areas "main contrib non-free non-free-firmware" \
             --debian-installer live \
             --debian-installer-gui true \
@@ -131,7 +137,7 @@ jobs:
             --checksums sha256
 
       - name: 🌸 Build ISO (NVIDIA)
-        run: sudo lb build
+        run: lb build
         timeout-minutes: 120
 
       - name: 📋 Rename and hash ISO (NVIDIA)
@@ -139,9 +145,9 @@ jobs:
           mkdir -p output
           VERSION="${{ github.ref_name }}"
           [[ "$VERSION" == "main" ]] && VERSION="dev-$(date +%Y%m%d)"
-          sudo mv *.iso "output/femdeb-${VERSION}-nvidia-amd64.iso" 2>/dev/null || \
-          sudo mv *.hybrid.iso "output/femdeb-${VERSION}-nvidia-amd64.iso" 2>/dev/null || true
-          sha256sum output/*.iso > output/SHA256SUMS
+          mv *.iso "output/femdeb-${VERSION}-nvidia-amd64.iso" 2>/dev/null || \
+          mv *.hybrid.iso "output/femdeb-${VERSION}-nvidia-amd64.iso" 2>/dev/null || true
+          sha256sum output/*.iso > output/SHA256SUMS-nvidia
 
       - name: 📤 Upload NVIDIA ISO artifact
         uses: actions/upload-artifact@v4
@@ -179,6 +185,7 @@ jobs:
 
             Two ISO variants are available:
 
+
             | Variant | File | Use |
             |---------|------|-----|
             | **Standard** | `femdeb-*-amd64.iso` | AMD / Intel GPU, or open-source drivers |
@@ -192,6 +199,6 @@ jobs:
             Boot from USB and follow the Calamares installer.
 
             ### Checksums
-            Verify with `sha256sum -c SHA256SUMS`.
+            Verify with `sha256sum -c SHA256SUMS-standard` or `sha256sum -c SHA256SUMS-nvidia`.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
