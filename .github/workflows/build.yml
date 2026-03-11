@@ -35,9 +35,7 @@ jobs:
 
       - name: 🌐 Network & DNS Overhaul
         run: |
-          # Fix MTU to prevent packet loss during debootstrap
           ip link set dev eth0 mtu 1400 || true
-          # Force Cloudflare DNS
           echo "nameserver 1.1.1.1" > /etc/resolv.conf
           echo "nameserver 1.0.0.1" >> /etc/resolv.conf
 
@@ -49,6 +47,12 @@ jobs:
             grub-efi-amd64-bin grub-pc-bin mtools dosfstools \
             rsync curl git ca-certificates debian-archive-keyring eatmydata
 
+      - name: 🔍 Verify mirror connectivity
+        run: |
+          curl -fsSL http://deb.debian.org/debian/dists/bookworm/Release -o /dev/null \
+            && echo "Mirror OK" \
+            || (echo "Mirror UNREACHABLE — aborting" && exit 1)
+
       - name: 🔧 Make scripts executable
         run: chmod +x scripts/*.sh
 
@@ -56,10 +60,10 @@ jobs:
         run: |
           lb config \
             --distribution bookworm \
-            --mirror-bootstrap http://deb.debian.org \
-            --mirror-chroot http://deb.debian.org \
-            --mirror-binary http://deb.debian.org \
-            --mirror-binary-security http://security.debian.org \
+            --mirror-bootstrap http://deb.debian.org/debian \
+            --mirror-chroot http://deb.debian.org/debian \
+            --mirror-binary http://deb.debian.org/debian \
+            --mirror-binary-security http://security.debian.org/debian-security \
             --archive-areas "main contrib non-free non-free-firmware" \
             --debian-installer live \
             --debian-installer-gui true \
@@ -73,23 +77,39 @@ jobs:
             --checksums sha256
 
       - name: 🌸 Build ISO (standard)
+        shell: bash
         run: |
-          # Try up to 3 times in case of transient mirror failures
           for i in {1..3}; do
             echo "Attempt $i..."
-            eatmydata lb build && break || lb clean --binary
-            sleep 10
+            if eatmydata lb build; then
+              echo "Build succeeded on attempt $i"
+              break
+            else
+              echo "Attempt $i failed, cleaning and retrying..."
+              lb clean
+              sleep 15
+            fi
+            if [[ $i -eq 3 ]]; then
+              echo "All 3 attempts failed."
+              exit 1
+            fi
           done
         timeout-minutes: 90
 
       - name: 📋 Rename and hash ISO (standard)
+        shell: bash
         run: |
           mkdir -p output
           VERSION="${{ github.ref_name }}"
           [[ "$VERSION" == "main" ]] && VERSION="dev-$(date +%Y%m%d)"
-          mv *.iso "output/femdeb-${VERSION}-amd64.iso" 2>/dev/null || \
-          mv *.hybrid.iso "output/femdeb-${VERSION}-amd64.iso" 2>/dev/null || true
+          ISO=$(ls *.iso *.hybrid.iso 2>/dev/null | head -n1)
+          if [[ -z "$ISO" ]]; then
+            echo "No ISO found after build!"
+            exit 1
+          fi
+          mv "$ISO" "output/femdeb-${VERSION}-amd64.iso"
           sha256sum output/*.iso > output/SHA256SUMS-standard
+          echo "Built: output/femdeb-${VERSION}-amd64.iso"
 
       - name: 📤 Upload standard ISO artifact
         uses: actions/upload-artifact@v4
@@ -118,6 +138,7 @@ jobs:
         run: |
           ip link set dev eth0 mtu 1400 || true
           echo "nameserver 1.1.1.1" > /etc/resolv.conf
+          echo "nameserver 1.0.0.1" >> /etc/resolv.conf
 
       - name: 📦 Install live-build and dependencies
         run: |
@@ -127,14 +148,35 @@ jobs:
             grub-efi-amd64-bin grub-pc-bin mtools dosfstools \
             rsync curl git ca-certificates debian-archive-keyring eatmydata
 
+      - name: 🔍 Verify mirror connectivity
+        run: |
+          curl -fsSL http://deb.debian.org/debian/dists/bookworm/Release -o /dev/null \
+            && echo "Mirror OK" \
+            || (echo "Mirror UNREACHABLE — aborting" && exit 1)
+
+      - name: 🔧 Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: 💾 Inject NVIDIA package list
+        run: |
+          mkdir -p config/package-lists
+          cat > config/package-lists/nvidia.list.chroot << 'EOF'
+          nvidia-driver
+          nvidia-kernel-dkms
+          nvidia-settings
+          nvidia-smi
+          firmware-misc-nonfree
+          linux-headers-amd64
+          EOF
+
       - name: 🏗️ Configure live-build (NVIDIA)
         run: |
           lb config \
             --distribution bookworm \
-            --mirror-bootstrap http://deb.debian.org \
-            --mirror-chroot http://deb.debian.org \
-            --mirror-binary http://deb.debian.org \
-            --mirror-binary-security http://security.debian.org \
+            --mirror-bootstrap http://deb.debian.org/debian \
+            --mirror-chroot http://deb.debian.org/debian \
+            --mirror-binary http://deb.debian.org/debian \
+            --mirror-binary-security http://security.debian.org/debian-security \
             --archive-areas "main contrib non-free non-free-firmware" \
             --debian-installer live \
             --debian-installer-gui true \
@@ -148,22 +190,39 @@ jobs:
             --checksums sha256
 
       - name: 🌸 Build ISO (NVIDIA)
+        shell: bash
         run: |
           for i in {1..3}; do
             echo "Attempt $i..."
-            eatmydata lb build && break || lb clean --binary
-            sleep 10
+            if eatmydata lb build; then
+              echo "Build succeeded on attempt $i"
+              break
+            else
+              echo "Attempt $i failed, cleaning and retrying..."
+              lb clean
+              sleep 15
+            fi
+            if [[ $i -eq 3 ]]; then
+              echo "All 3 attempts failed."
+              exit 1
+            fi
           done
         timeout-minutes: 120
 
       - name: 📋 Rename and hash ISO (NVIDIA)
+        shell: bash
         run: |
           mkdir -p output
           VERSION="${{ github.ref_name }}"
           [[ "$VERSION" == "main" ]] && VERSION="dev-$(date +%Y%m%d)"
-          mv *.iso "output/femdeb-${VERSION}-nvidia-amd64.iso" 2>/dev/null || \
-          mv *.hybrid.iso "output/femdeb-${VERSION}-nvidia-amd64.iso" 2>/dev/null || true
+          ISO=$(ls *.iso *.hybrid.iso 2>/dev/null | head -n1)
+          if [[ -z "$ISO" ]]; then
+            echo "No ISO found after build!"
+            exit 1
+          fi
+          mv "$ISO" "output/femdeb-${VERSION}-nvidia-amd64.iso"
           sha256sum output/*.iso > output/SHA256SUMS-nvidia
+          echo "Built: output/femdeb-${VERSION}-nvidia-amd64.iso"
 
       - name: 📤 Upload NVIDIA ISO artifact
         uses: actions/upload-artifact@v4
@@ -177,14 +236,21 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: [build-standard, build-nvidia]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: |
+      startsWith(github.ref, 'refs/tags/v') &&
+      (needs.build-standard.result == 'success' || needs.build-standard.result == 'skipped') &&
+      (needs.build-nvidia.result == 'success' || needs.build-nvidia.result == 'skipped')
+
     steps:
-      - name: 📥 Download artifacts
+      - name: 📥 Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: release/
           pattern: femdeb-*-iso
           merge-multiple: true
+
+      - name: 📋 List release files
+        run: ls -lh release/
 
       - name: 🚀 Create Release
         uses: softprops/action-gh-release@v2
@@ -192,6 +258,14 @@ jobs:
           files: release/*
           body: |
             ## 🌸 FemDeb OS ${{ github.ref_name }}
+
             ISO images are ready for download.
+
+            | Variant  | File |
+            |----------|------|
+            | Standard | `femdeb-${{ github.ref_name }}-amd64.iso` |
+            | NVIDIA   | `femdeb-${{ github.ref_name }}-nvidia-amd64.iso` |
+
+            Verify your download with the included `SHA256SUMS-*` files.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
