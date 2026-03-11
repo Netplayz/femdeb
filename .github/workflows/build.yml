@@ -14,10 +14,7 @@ on:
         required: true
         default: 'both'
         type: choice
-        options:
-          - standard
-          - nvidia
-          - both
+        options: [standard, nvidia, both]
 
 jobs:
   # ── Standard ISO ─────────────────────────────────────────────────────────────
@@ -26,7 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: debian:bookworm
-      options: --privileged
+      options: >-
+        --privileged
+        --dns 8.8.8.8
+        --dns 8.8.4.4
+        --network host
     if: >
       github.event_name != 'workflow_dispatch' ||
       github.event.inputs.variant == 'standard' ||
@@ -93,7 +94,11 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: debian:bookworm
-      options: --privileged
+      options: >-
+        --privileged
+        --dns 8.8.8.8
+        --dns 8.8.4.4
+        --network host
     if: >
       github.event_name != 'workflow_dispatch' ||
       github.event.inputs.variant == 'nvidia' ||
@@ -182,23 +187,7 @@ jobs:
           files: release/*
           body: |
             ## 🌸 FemDeb OS ${{ github.ref_name }}
-
-            Two ISO variants are available:
-
-
-            | Variant | File | Use |
-            |---------|------|-----|
-            | **Standard** | `femdeb-*-amd64.iso` | AMD / Intel GPU, or open-source drivers |
-            | **NVIDIA** | `femdeb-*-nvidia-amd64.iso` | Proprietary NVIDIA driver pre-installed |
-
-            ### Installation
-            ```bash
-            # Flash to USB (replace /dev/sdX with your drive)
-            sudo dd if=femdeb-*.iso of=/dev/sdX bs=4M status=progress oflag=sync
-            ```
-            Boot from USB and follow the Calamares installer.
-
-            ### Checksums
-            Verify with `sha256sum -c SHA256SUMS-standard` or `sha256sum -c SHA256SUMS-nvidia`.
+            Standard and NVIDIA variants available below.
+            Verify with `sha256sum -c SHA256SUMS-standard`.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
