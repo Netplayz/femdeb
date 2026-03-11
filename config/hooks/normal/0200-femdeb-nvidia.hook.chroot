@@ -1,0 +1,71 @@
+#!/bin/bash
+# =============================================================================
+#  FemDeb OS — NVIDIA Driver Configuration Hook
+#  Runs inside chroot at build time to set up NVIDIA properly
+# =============================================================================
+
+set -e
+
+echo "[FemDeb] Configuring NVIDIA drivers..."
+
+# ── Enable non-free firmware repo (required for NVIDIA) ───────────────────────
+cat > /etc/apt/sources.list.d/non-free.list << 'EOF'
+deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+EOF
+
+apt-get update -y
+
+# ── Blacklist Nouveau (open-source NVIDIA driver — conflicts with nvidia-driver)
+mkdir -p /etc/modprobe.d
+cat > /etc/modprobe.d/blacklist-nouveau.conf << 'EOF'
+# FemDeb: Blacklist nouveau to allow proprietary NVIDIA driver to load
+blacklist nouveau
+blacklist lbm-nouveau
+options nouveau modeset=0
+alias nouveau off
+alias lbm-nouveau off
+EOF
+
+# ── Tell initramfs to apply the blacklist ─────────────────────────────────────
+echo "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf
+
+# ── Regenerate initramfs so nouveau is blocked from boot ─────────────────────
+if command -v update-initramfs &>/dev/null; then
+  update-initramfs -u -k all 2>/dev/null || true
+fi
+
+# ── NVIDIA persistence daemon (keeps GPU context alive between processes) ─────
+if command -v systemctl &>/dev/null; then
+  systemctl enable nvidia-persistenced 2>/dev/null || true
+fi
+
+# ── KDE Plasma: enable hardware acceleration hints ───────────────────────────
+mkdir -p /etc/skel/.config
+cat >> /etc/skel/.config/kdeglobals << 'EOF'
+
+[KDE Performance]
+EnableCompositor=true
+EOF
+
+cat > /etc/skel/.config/kwinrc << 'EOF'
+[Compositing]
+Backend=OpenGL
+GLCore=true
+Enabled=true
+OpenGLIsUnsafe=false
+EOF
+
+# ── Environment: force NVIDIA for Vulkan and VA-API ──────────────────────────
+mkdir -p /etc/profile.d
+cat > /etc/profile.d/femdeb-nvidia.sh << 'EOF'
+# FemDeb NVIDIA environment variables
+export __GL_SHADER_DISK_CACHE=1
+export __GL_SHADER_DISK_CACHE_PATH="$HOME/.cache/nv-shaders"
+export VDPAU_DRIVER=nvidia
+EOF
+
+echo "[FemDeb] ✅ NVIDIA driver configuration complete."
+echo "[FemDeb]    Nouveau has been blacklisted."
+echo "[FemDeb]    KDE compositing set to OpenGL (NVIDIA)."
