@@ -1,0 +1,97 @@
+name: 🌸 Build FemDeb ISO
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ISO
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 📦 Install live-build and dependencies
+        run: |
+          apt-get update -y
+          apt-get install -y \
+            live-build \
+            debootstrap \
+            squashfs-tools \
+            xorriso \
+            grub-efi-amd64-bin \
+            grub-pc-bin \
+            mtools \
+            dosfstools \
+            rsync \
+            curl \
+            git \
+            ca-certificates
+
+      - name: 🔧 Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: 🏗️ Configure live-build
+        run: |
+          lb config \
+            --distribution bookworm \
+            --archive-areas "main contrib non-free non-free-firmware" \
+            --debian-installer live \
+            --debian-installer-gui true \
+            --bootloaders grub-efi \
+            --binary-images iso-hybrid \
+            --iso-application "FemDeb OS" \
+            --iso-publisher "FemDeb Project" \
+            --iso-volume "FemDeb" \
+            --memtest none \
+            --win32-loader false \
+            --checksums sha256
+
+      - name: 🌸 Build ISO
+        run: lb build
+        timeout-minutes: 90
+
+      - name: 📋 Rename and hash ISO
+        run: |
+          mkdir -p output
+          VERSION="${{ github.ref_name }}"
+          [[ "$VERSION" == "main" ]] && VERSION="dev-$(date +%Y%m%d)"
+          mv *.iso "output/femdeb-${VERSION}-amd64.iso" 2>/dev/null || \
+          mv *.hybrid.iso "output/femdeb-${VERSION}-amd64.iso" 2>/dev/null || true
+          sha256sum output/*.iso > output/SHA256SUMS
+
+      - name: 📤 Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: femdeb-iso
+          path: output/
+          retention-days: 7
+
+      - name: 🚀 Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            output/*.iso
+            output/SHA256SUMS
+          body: |
+            ## 🌸 FemDeb OS ${{ github.ref_name }}
+
+            ### Installation
+            1. Download the ISO below
+            2. Write to USB: `sudo dd if=femdeb-*.iso of=/dev/sdX bs=4M status=progress`
+            3. Boot from USB and follow the Calamares installer
+
+            ### Checksums
+            See `SHA256SUMS` for verification.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

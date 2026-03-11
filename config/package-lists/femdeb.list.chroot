@@ -1,0 +1,89 @@
+# =============================================================================
+#  FemDeb OS — Core Package List
+#  config/package-lists/femdeb.list.chroot
+# =============================================================================
+
+# ── System Base ───────────────────────────────────────────────────────────────
+sudo
+wget
+curl
+git
+unzip
+zip
+tar
+gzip
+bzip2
+xz-utils
+lsb-release
+apt-transport-https
+ca-certificates
+gnupg
+
+# ── Live System ───────────────────────────────────────────────────────────────
+live-config
+live-config-systemd
+live-tools
+user-setup
+
+# ── Installer ─────────────────────────────────────────────────────────────────
+calamares
+calamares-settings-debian
+
+# ── Boot Splash ───────────────────────────────────────────────────────────────
+plymouth
+plymouth-themes
+
+# ── Network ───────────────────────────────────────────────────────────────────
+network-manager
+network-manager-gnome
+wpasupplicant
+wireless-tools
+rfkill
+
+# ── Audio ─────────────────────────────────────────────────────────────────────
+pipewire
+pipewire-pulse
+wireplumber
+pavucontrol-qt
+
+# ── Bluetooth ─────────────────────────────────────────────────────────────────
+bluetooth
+bluez
+
+# ── Multimedia ────────────────────────────────────────────────────────────────
+vlc
+ffmpeg
+gstreamer1.0-plugins-good
+gstreamer1.0-plugins-bad
+gstreamer1.0-plugins-ugly
+gstreamer1.0-libav
+
+# ── Browser ───────────────────────────────────────────────────────────────────
+firefox-esr
+
+# ── Office ────────────────────────────────────────────────────────────────────
+libreoffice-calc
+libreoffice-writer
+libreoffice-impress
+
+# ── Theming ───────────────────────────────────────────────────────────────────
+papirus-icon-theme
+kvantum
+qt5ct
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+htop
+neofetch
+tree
+nano
+vim
+timeshift
+gparted
+
+# ── Printing ─────────────────────────────────────────────────────────────────
+cups
+cups-browsed
+system-config-printer
+
+# ── Accessibility ────────────────────────────────────────────────────────────
+at-spi2-core

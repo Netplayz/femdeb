@@ -1,0 +1,18 @@
+# live-build artifacts
+cache/
+chroot/
+binary/
+*.iso
+*.hybrid.iso
+*.img
+*.log
+output/
+
+# Temp files
+*.tmp
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,49 @@
+# =============================================================================
+#  FemDeb OS — KDE Plasma Package List
+#  config/package-lists/kde.list.chroot
+# =============================================================================
+
+# ── KDE Plasma Desktop ────────────────────────────────────────────────────────
+kde-standard
+plasma-desktop
+plasma-nm
+plasma-pa
+plasma-widgets-addons
+plasma-workspace
+kwin-x11
+kscreen
+sddm
+sddm-theme-breeze
+kde-config-sddm
+
+# ── KDE Applications ─────────────────────────────────────────────────────────
+dolphin
+konsole
+kate
+ark
+gwenview
+okular
+spectacle
+kcalc
+kdeconnect
+partitionmanager
+kde-spectacle
+
+# ── KDE System Tools ─────────────────────────────────────────────────────────
+systemsettings
+kinfocenter
+bluedevil
+kwalletmanager
+
+# ── Fonts & Theme Deps ────────────────────────────────────────────────────────
+fonts-noto
+fonts-noto-color-emoji
+fonts-recommended
+breeze
+breeze-gtk-theme
+oxygen-icon-theme
+
+# ── Display & GPU ─────────────────────────────────────────────────────────────
+xserver-xorg
+mesa-utils
+va-driver-all

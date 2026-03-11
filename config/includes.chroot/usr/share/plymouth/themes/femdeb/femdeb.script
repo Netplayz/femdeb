@@ -1,0 +1,70 @@
+// =============================================================================
+//  FemDeb OS — Plymouth Boot Splash Theme Script
+//  Place in: config/includes.chroot/usr/share/plymouth/themes/femdeb/
+// =============================================================================
+
+// ── Background ────────────────────────────────────────────────────────────────
+bg_image = Image("background.png");
+bg_sprite = Sprite(bg_image);
+bg_sprite.SetX(0);
+bg_sprite.SetY(0);
+bg_sprite.SetZ(-100);
+
+// ── Logo ─────────────────────────────────────────────────────────────────────
+logo_image = Image("logo.png");
+logo_sprite = Sprite(logo_image);
+
+screen_width  = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+logo_x = (screen_width  - logo_image.GetWidth())  / 2;
+logo_y = (screen_height - logo_image.GetHeight()) / 2 - 60;
+
+logo_sprite.SetX(logo_x);
+logo_sprite.SetY(logo_y);
+logo_sprite.SetZ(1);
+
+// ── Progress Bar ──────────────────────────────────────────────────────────────
+bar_width  = 300;
+bar_height = 6;
+bar_x      = (screen_width - bar_width) / 2;
+bar_y      = screen_height / 2 + 60;
+
+// Bar background (dark track)
+bar_bg_image = Image.Scale(Image("progress-bg.png"), bar_width, bar_height);
+bar_bg = Sprite(bar_bg_image);
+bar_bg.SetX(bar_x);
+bar_bg.SetY(bar_y);
+bar_bg.SetZ(1);
+
+// Bar fill
+bar_fill_image = Image.Scale(Image("progress-fill.png"), bar_width, bar_height);
+bar_fill = Sprite(bar_fill_image);
+bar_fill.SetX(bar_x);
+bar_fill.SetY(bar_y);
+bar_fill.SetZ(2);
+
+progress = 0;
+
+fun BootProgressCallback(duration, progress_value) {
+  progress = progress_value;
+  new_width = Math.Int(bar_width * progress_value);
+  if (new_width < 1) { new_width = 1; }
+  bar_fill.SetImage(Image.Scale(Image("progress-fill.png"), new_width, bar_height));
+}
+
+Plymouth.SetBootProgressFunction(BootProgressCallback);
+
+fun RootMountedCallback() {
+  bar_fill.SetImage(Image.Scale(Image("progress-fill.png"), bar_width, bar_height));
+}
+
+Plymouth.SetRootMountedFunction(RootMountedCallback);
+
+fun QuitCallback() {
+  logo_sprite.SetOpacity(0);
+  bar_bg.SetOpacity(0);
+  bar_fill.SetOpacity(0);
+}
+
+Plymouth.SetQuitFunction(QuitCallback);

@@ -1,0 +1,85 @@
+#!/bin/bash
+# =============================================================================
+#  FemDeb OS — Post-install Chroot Hook
+#  Runs inside the chroot to apply FemDeb customizations
+# =============================================================================
+
+set -e
+
+echo "[FemDeb] Applying system configuration..."
+
+# ── Set hostname ──────────────────────────────────────────────────────────────
+echo "femdeb" > /etc/hostname
+cat > /etc/hosts << 'EOF'
+127.0.0.1   localhost
+127.0.1.1   femdeb
+::1         localhost ip6-localhost ip6-loopback
+ff02::1     ip6-allnodes
+ff02::2     ip6-allrouters
+EOF
+
+# ── OS Release branding ───────────────────────────────────────────────────────
+cat > /etc/os-release << 'EOF'
+PRETTY_NAME="FemDeb OS"
+NAME="FemDeb"
+VERSION_ID="1"
+VERSION="1 (Bloom)"
+ID=femdeb
+ID_LIKE=debian
+HOME_URL="https://github.com/Netplayz/femdeb"
+SUPPORT_URL="https://github.com/Netplayz/femdeb/issues"
+BUG_REPORT_URL="https://github.com/Netplayz/femdeb/issues"
+LOGO=femdeb-logo
+EOF
+
+# ── SDDM Configuration ────────────────────────────────────────────────────────
+mkdir -p /etc/sddm.conf.d
+cat > /etc/sddm.conf.d/femdeb.conf << 'EOF'
+[Theme]
+Current=breeze
+
+[Autologin]
+Relogin=false
+
+[General]
+HaltCommand=/usr/bin/systemctl poweroff
+RebootCommand=/usr/bin/systemctl reboot
+EOF
+
+# ── Enable Services ───────────────────────────────────────────────────────────
+systemctl enable sddm           2>/dev/null || true
+systemctl enable NetworkManager 2>/dev/null || true
+systemctl enable bluetooth      2>/dev/null || true
+systemctl enable cups           2>/dev/null || true
+
+# ── Disable conflicting services ─────────────────────────────────────────────
+systemctl disable networking    2>/dev/null || true
+
+# ── Plymouth theme ───────────────────────────────────────────────────────────
+if command -v update-alternatives &>/dev/null; then
+  update-alternatives --install /usr/share/plymouth/themes/default.plymouth \
+    default.plymouth /usr/share/plymouth/themes/femdeb/femdeb.plymouth 100 \
+    2>/dev/null || true
+fi
+
+# ── Default shell greeting ───────────────────────────────────────────────────
+cat >> /etc/skel/.bashrc << 'EOF'
+
+# FemDeb greeting
+if command -v neofetch &>/dev/null; then
+  neofetch
+fi
+EOF
+
+# ── Live user setup ───────────────────────────────────────────────────────────
+# (live-config handles creating the 'user' account; we set defaults here)
+mkdir -p /etc/live/config.conf.d
+cat > /etc/live/config.conf.d/femdeb.conf << 'EOF'
+LIVE_USERNAME="femdeb"
+LIVE_USER_FULLNAME="FemDeb Live User"
+LIVE_HOSTNAME="femdeb"
+LIVE_TIMEZONE="America/New_York"
+LIVE_LOCALE="en_US.UTF-8"
+EOF
+
+echo "[FemDeb] ✅ System configuration complete."

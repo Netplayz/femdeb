@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#F1D5E4" stroke="#DC8FB8" stroke-width="4"/>
+
+  <!-- Debian swirl adapted with FemDeb pink -->
+  <path d="M100 30 C60 30, 30 60, 30 100 C30 140, 60 170, 100 170 C140 170, 170 140, 170 100 C170 60, 140 30, 100 30 Z"
+        fill="#DC8FB8" opacity="0.3"/>
+
+  <!-- Letter F -->
+  <text x="64" y="128" font-family="Georgia, serif" font-size="80" font-weight="bold"
+        fill="#5C2A48" letter-spacing="-4">F</text>
+
+  <!-- Letter D -->
+  <text x="108" y="128" font-family="Georgia, serif" font-size="80" font-weight="bold"
+        fill="#DC8FB8" letter-spacing="-4">D</text>
+
+  <!-- Small cherry blossom decoration top-right -->
+  <circle cx="148" cy="52" r="7" fill="#F9A8C9" opacity="0.8"/>
+  <circle cx="160" cy="44" r="5" fill="#F9A8C9" opacity="0.7"/>
+  <circle cx="156" cy="58" r="4" fill="#F9A8C9" opacity="0.6"/>
+
+  <!-- Outer ring highlight -->
+  <circle cx="100" cy="100" r="93" fill="none" stroke="#F9A8C9" stroke-width="1.5" opacity="0.5"/>
+</svg>

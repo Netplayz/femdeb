@@ -1,0 +1,49 @@
+#!/bin/bash
+# =============================================================================
+#  FemDeb OS — Live Boot Hook
+#  Runs at first boot of the live environment
+# =============================================================================
+
+set -e
+
+# Apply KDE Plasma defaults for the live user
+LIVE_HOME="/home/femdeb"
+
+# Wait for user home to be set up
+sleep 2
+
+if [[ -d "$LIVE_HOME" ]]; then
+  # Set the FemDeb KDE color scheme
+  mkdir -p "$LIVE_HOME/.config"
+  cat > "$LIVE_HOME/.config/kdeglobals" << 'EOF'
+[Colors:Button]
+BackgroundNormal=241,213,228
+ForegroundNormal=50,50,50
+
+[Colors:View]
+BackgroundNormal=255,245,250
+ForegroundNormal=50,50,50
+
+[Colors:Window]
+BackgroundNormal=245,220,235
+ForegroundNormal=50,50,50
+
+[General]
+ColorScheme=FemDeb
+Name=FemDeb
+shadeSortColumn=true
+
+[KDE]
+LookAndFeelPackage=org.kde.breeze.desktop
+SingleClick=false
+widgetStyle=Breeze
+
+[WM]
+activeBackground=220,160,190
+activeBlend=220,160,190
+activeForeground=255,255,255
+EOF
+  chown -R femdeb:femdeb "$LIVE_HOME/.config"
+fi
+
+echo "[FemDeb] Live environment configured."
