@@ -14,10 +14,7 @@ on:
         required: true
         default: 'both'
         type: choice
-        options:
-          - standard
-          - nvidia
-          - both
+        options: [standard, nvidia, both]
 
 jobs:
   # ── Standard ISO ─────────────────────────────────────────────────────────────
@@ -36,10 +33,13 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🌐 Fix DNS
+      - name: 🌐 Network & DNS Overhaul
         run: |
-          echo "nameserver 8.8.8.8" > /etc/resolv.conf
-          echo "nameserver 1.1.1.1" >> /etc/resolv.conf
+          # Fix MTU to prevent packet loss during debootstrap
+          ip link set dev eth0 mtu 1400 || true
+          # Force Cloudflare DNS
+          echo "nameserver 1.1.1.1" > /etc/resolv.conf
+          echo "nameserver 1.0.0.1" >> /etc/resolv.conf
 
       - name: 📦 Install live-build and dependencies
         run: |
@@ -73,7 +73,13 @@ jobs:
             --checksums sha256
 
       - name: 🌸 Build ISO (standard)
-        run: eatmydata lb build
+        run: |
+          # Try up to 3 times in case of transient mirror failures
+          for i in {1..3}; do
+            echo "Attempt $i..."
+            eatmydata lb build && break || lb clean --binary
+            sleep 10
+          done
         timeout-minutes: 90
 
       - name: 📋 Rename and hash ISO (standard)
@@ -108,10 +114,10 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🌐 Fix DNS
+      - name: 🌐 Network & DNS Overhaul
         run: |
-          echo "nameserver 8.8.8.8" > /etc/resolv.conf
-          echo "nameserver 1.1.1.1" >> /etc/resolv.conf
+          ip link set dev eth0 mtu 1400 || true
+          echo "nameserver 1.1.1.1" > /etc/resolv.conf
 
       - name: 📦 Install live-build and dependencies
         run: |
@@ -120,11 +126,6 @@ jobs:
             live-build debootstrap squashfs-tools xorriso \
             grub-efi-amd64-bin grub-pc-bin mtools dosfstools \
             rsync curl git ca-certificates debian-archive-keyring eatmydata
-
-      - name: 🔧 Make scripts executable
-        run: |
-          chmod +x scripts/*.sh
-          [ -f config/hooks/normal/0200-femdeb-nvidia.hook.chroot ] && chmod +x config/hooks/normal/0200-femdeb-nvidia.hook.chroot
 
       - name: 🏗️ Configure live-build (NVIDIA)
         run: |
@@ -147,7 +148,12 @@ jobs:
             --checksums sha256
 
       - name: 🌸 Build ISO (NVIDIA)
-        run: eatmydata lb build
+        run: |
+          for i in {1..3}; do
+            echo "Attempt $i..."
+            eatmydata lb build && break || lb clean --binary
+            sleep 10
+          done
         timeout-minutes: 120
 
       - name: 📋 Rename and hash ISO (NVIDIA)
@@ -166,25 +172,19 @@ jobs:
           path: output/
           retention-days: 7
 
-  # ── GitHub Release (tags only) ────────────────────────────────────────────────
+  # ── GitHub Release ────────────────────────────────────────────────────────────
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: [build-standard, build-nvidia]
     if: startsWith(github.ref, 'refs/tags/v')
-
     steps:
-      - name: 📥 Download standard ISO
+      - name: 📥 Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: femdeb-standard-iso
           path: release/
-
-      - name: 📥 Download NVIDIA ISO
-        uses: actions/download-artifact@v4
-        with:
-          name: femdeb-nvidia-iso
-          path: release/
+          pattern: femdeb-*-iso
+          merge-multiple: true
 
       - name: 🚀 Create Release
         uses: softprops/action-gh-release@v2
@@ -192,6 +192,6 @@ jobs:
           files: release/*
           body: |
             ## 🌸 FemDeb OS ${{ github.ref_name }}
-            Standard and NVIDIA variants available.
+            ISO images are ready for download.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
