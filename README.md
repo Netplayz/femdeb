@@ -54,7 +54,7 @@ femdeb/
 
 ---
 
-## 🔧 Building FemDeb
+##  Compiling from source
 
 ### Prerequisites
 
@@ -68,7 +68,7 @@ sudo apt install live-build calamares git curl wget
 ### Clone & Build
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/femdeb.git
+git clone https://github.com/netplayz/femdeb.git
 cd femdeb
 chmod +x scripts/build.sh
 sudo ./scripts/build.sh
